@@ -16,8 +16,8 @@ const user: { mfa?: MFA } = {
 
 service.get('/auth/secret', async (_req, res) => {
   const options = {
-    issuer: `Water APP`,
-    name: `Water APP (dev)`,
+    issuer: `watter`,
+    name: `watterapp (username@email.com)`,
     length: 64
   }
 
@@ -32,18 +32,30 @@ service.get('/auth/secret', async (_req, res) => {
   user.mfa = mfa
 
   // Get the data URL of the authenticator URL
-  QRCode.toDataURL(mfa.otp || '', (err: Error | undefined, dataUrl: string) => {
-    // const b64string = dataUrl.replace('data:image/png;base64,', '')
-    // const binary = Buffer.from(b64string, 'base64')
-    // res.send(binary, 200)
-    res.send(
-      `<img src="${dataUrl}" /> <br />Secret MFA code in plain text: <br />${mfa.secret}`,
-      200,
-      {
-        'Content-Type': 'text/html'
+  QRCode.toDataURL(
+    mfa.otp || '',
+    {
+      // margin: 8,
+      color: {
+        dark: '#00F', // Blue dots
+        light: '#FFFFFF'
+        // light: '#0000' // Transparent background
       }
-    )
-  })
+    },
+    (err: Error | undefined, dataUrl: string) => {
+      // const b64string = dataUrl.replace('data:image/png;base64,', '')
+      // const binary = Buffer.from(b64string, 'base64')
+      // res.send(binary, 200)
+
+      res.send(
+        `<img src="${dataUrl}" /> <br />Secret MFA code in plain text: <br />${mfa.secret}`,
+        200,
+        {
+          'Content-Type': 'text/html'
+        }
+      )
+    }
+  )
 })
 
 service.get('/auth/validate/:token', async (req, res) => {
@@ -54,7 +66,8 @@ service.get('/auth/validate/:token', async (req, res) => {
   const verified = speakeasy.totp.verify({
     secret: base32secret,
     encoding: 'base32',
-    token: req.params.token
+    token: req.params.token,
+    window: 1 // Let user enter previous totp token because of unresponsive UX.
   })
 
   if (verified) {
